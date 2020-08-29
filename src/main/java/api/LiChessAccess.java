@@ -257,7 +257,7 @@ public class LiChessAccess {
      * @param handler processes all game events
      * @param games list of games to wait for.
      */
-    public void joinGame(String gameId, InputHandler handler, List<LiChessGame> games) {
+    private void joinGame(String gameId, InputHandler handler, List<LiChessGame> games) {
         if (!expire) {
             var game = new LiChessGame(gameId, this, handler);
             games.add(game);
@@ -270,7 +270,7 @@ public class LiChessAccess {
      *
      * @param id the lichess api gives every challenge an ID which is needed to accept it
      */
-    private void acceptChallenge(String id) {
+    public void acceptChallenge(String id) {
         client.post().uri(String.format("/api/challenge/%s/accept", id)).exchange().subscribe();
     }
 

@@ -162,6 +162,7 @@ public class LiChessGame {
      * Kill connection to game API
      */
     public void disconnect() {
+        finished = true;
         eventCatcher.dispose();
     }
 
