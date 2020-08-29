@@ -1,0 +1,19 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-webflux', version: '2.3.3.RELEASE'
+    compile group: 'org.projectreactor', name: 'reactor-spring', version: '1.0.1.RELEASE'
+    compile group: 'org.json', name: 'json', version: '20200518'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'com.github.bhlangonijr:chesslib:1.1.20'
+}
