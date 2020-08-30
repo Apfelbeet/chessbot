@@ -20,14 +20,12 @@ import java.util.function.Consumer;
  * <p>
  * This implementation is not capable to change account settings or similar stuff.
  * <p>
- * The constructor needs different information about the bot:
+ * The constructor needs an API access token as "password" for the bot:
  * - key: API Access token: you can create one on the settings page of lichess.org.
  * Permission the key needs: 1. Read incoming challenges 2. Create, accept, decline challenges 3. Play games with bot API
  * Don't show this key in public sourcecode!
- * //TODO: fetch username and id from https://lichess.org/api/account
- * - id: id of the account
- * - username: username of the account
- *
+
+ * <p>
  * LiChessAccess forces to program to continue running until all services (thus the games that are under control of this access)
  * are finished. You can force a LiChessAccess instance to stop by using expire() or dispose().
  * expire() will stop all event streams and prevent new streams to open so that it will no further accept new games and services.
@@ -43,7 +41,7 @@ public class LiChessAccess {
      * 1. Read incoming challenges
      * 2. Create, accept, decline challenges
      * 3. Play games with bot API
-     *
+     * <p>
      * It will be used as authorization in the header of http-requests to the API.
      * It's similar to an password, therefore don't show this key as plain text in public code segments.
      */
@@ -87,16 +85,12 @@ public class LiChessAccess {
     private boolean dispose;
 
     /**
-     * @param key API Access token: you can create one on the settings page of lichess.org.
-     *      Permission the key needs: 1. Read incoming challenges 2. Create, accept, decline challenges 3. Play games with bot API
-     *      Don't show this key in public sourcecode!
-     * @param id of the account.
-     * @param username of the account.
+     * @param key      API Access token: you can create one on the settings page of lichess.org.
+     *                 Permission the key needs: 1. Read incoming challenges 2. Create, accept, decline challenges 3. Play games with bot API
+     *                 Don't show this key in public sourcecode!
      */
-    public LiChessAccess(String key, String id, String username) {
+    public LiChessAccess(String key) {
         this.key = key;
-        this.username = username;
-        this.botId = id;
         games = new ArrayList<>();
         services = new ArrayList<>();
         client = WebClient.builder()
@@ -104,6 +98,14 @@ public class LiChessAccess {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, String.format("Bearer %s", this.key))
                 .build();
 
+        String responseBodyRaw = client.get().uri("/api/account").retrieve().bodyToMono(String.class).block();
+        if(responseBodyRaw != null) {
+            JSONObject responseBodyJson = new JSONObject(responseBodyRaw);
+            if(responseBodyJson.has("id") && responseBodyJson.has("username")) {
+                this.username = responseBodyJson.getString("username");
+                this.botId = responseBodyJson.getString("id");
+            }else throw new RuntimeException("Couldn't load account information!");
+        }else throw new RuntimeException("Couldn't load account information!");
     }
 
     /**
@@ -112,14 +114,14 @@ public class LiChessAccess {
      * You can force the instance to stop by using expire() or dispose().
      *
      * @param consumer will be called when the API sends a response.
-     * @param games stores all games that under control of this service.
-     *              It is used to notice when to stop the waiting thread.
-     *              In the most cases the List should be empty.
-     * @param count the amount of games this service will accept. -1 for unlimited.
+     * @param games    stores all games that under control of this service.
+     *                 It is used to notice when to stop the waiting thread.
+     *                 In the most cases the List should be empty.
+     * @param count    the amount of games this service will accept. -1 for unlimited.
      * @param onFinish called after the created service is finished.
      */
     public void catchAndHandleEvents(Consumer<? super String> consumer, List<LiChessGame> games, int count,
-                                      Runnable onFinish) {
+                                     Runnable onFinish) {
         runAndAwaitService(client.method(HttpMethod.GET).uri("/api/stream/event").exchange().subscribe(
                 clientResponse -> {
                     clientResponse.bodyToFlux(String.class).subscribe(consumer);
@@ -131,8 +133,8 @@ public class LiChessAccess {
      * Games that are used in another service, still get passed by the API. Therefore this service will still join this games.
      * //TODO: Service that only joins alone
      *
-     * @param count the amount of games this service will accept. -1 for unlimited.
-     * @param handler used in a LiChessGame instance, that will pass all game events through the handler.
+     * @param count    the amount of games this service will accept. -1 for unlimited.
+     * @param handler  used in a LiChessGame instance, that will pass all game events through the handler.
      * @param onFinish called after the created service is finished.
      */
     public void joinExistingGames(int count, InputHandler handler, Runnable onFinish) {
@@ -164,7 +166,7 @@ public class LiChessAccess {
     }
 
     /**
-     * @param count the amount of games this service will accept. -1 for unlimited.
+     * @param count   the amount of games this service will accept. -1 for unlimited.
      * @param handler used in a LiChessGame instance, that will pass all game events through the handler.
      */
     public void joinExistingGames(int count, InputHandler handler) {
@@ -175,8 +177,8 @@ public class LiChessAccess {
     /**
      * This service will accept all incoming challenges and joins all games in the same way as joinExistingGames().
      *
-     * @param count the amount of games this service will accept. -1 for unlimited.
-     * @param handler used in a LiChessGame instance, that will pass all game events through the handler.
+     * @param count    the amount of games this service will accept. -1 for unlimited.
+     * @param handler  used in a LiChessGame instance, that will pass all game events through the handler.
      * @param onFinish called after the created service is finished.
      */
     public void acceptAndJoinGames(int count, InputHandler handler, Runnable onFinish) {
@@ -211,7 +213,7 @@ public class LiChessAccess {
     }
 
     /**
-     * @param count the amount of games this service will accept. -1 for unlimited.
+     * @param count   the amount of games this service will accept. -1 for unlimited.
      * @param handler used in a LiChessGame instance, that will pass all game events through the handler.
      */
     public void acceptAndJoinGames(int count, InputHandler handler) {
@@ -222,9 +224,9 @@ public class LiChessAccess {
     /**
      * Starts AwaitThread, that waits until all games are finished or this access is disposed.
      *
-     * @param service response stream from the api, that will be disposed when the service is finished.
-     * @param count amount of games to wait for. -1 for unlimited.
-     * @param games list of games to wait for.
+     * @param service  response stream from the api, that will be disposed when the service is finished.
+     * @param count    amount of games to wait for. -1 for unlimited.
+     * @param games    list of games to wait for.
      * @param onFinish called after waiting is done.
      */
     private void await(Disposable service, int count, List<LiChessGame> games, Runnable onFinish) {
@@ -235,9 +237,9 @@ public class LiChessAccess {
      * If the access isn't expired or disposed, a new service will be added to a general list, stared and awaited.
      * If this access is expired or disposed, all new service will be disposed instantly.
      *
-     * @param service response stream from the api, that will be disposed when the service is finished.
-     * @param games list of games to wait for.
-     * @param count amount of games to wait for. -1 for unlimited.
+     * @param service  response stream from the api, that will be disposed when the service is finished.
+     * @param games    list of games to wait for.
+     * @param count    amount of games to wait for. -1 for unlimited.
      * @param onFinish called after waiting is done.
      */
     private void runAndAwaitService(Disposable service, List<LiChessGame> games, int count, Runnable onFinish) {
@@ -253,9 +255,9 @@ public class LiChessAccess {
      * Join new Game: Creates new LiChessGame instance, that communicates with the API and receives all game events
      * The game will be added in a local list (for the AwaitThread) and in a global list (for disposing this access)
      *
-     * @param gameId the lichess api gives every game an ID which is needed to receive and send game events
+     * @param gameId  the lichess api gives every game an ID which is needed to receive and send game events
      * @param handler processes all game events
-     * @param games list of games to wait for.
+     * @param games   list of games to wait for.
      */
     private void joinGame(String gameId, InputHandler handler, List<LiChessGame> games) {
         if (!expire) {
