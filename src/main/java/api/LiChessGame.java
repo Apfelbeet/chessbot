@@ -37,7 +37,7 @@ public class LiChessGame {
     /**
      * The current state of the game, it contains information about the players, other API level information, game level information.
      */
-    private GameState state;
+    protected GameState state;
 
     /**
      * The side the bot controls.
@@ -62,22 +62,27 @@ public class LiChessGame {
     public LiChessGame(String id, LiChessAccess access, InputHandler handler) {
         this.id = id;
         this.access = access;
-        this.client = access.getClient();
         this.handler = handler;
+        if(access != null && id != null) {
+            this.client = access.getClient();
+            eventCatcher = client.method(HttpMethod.GET).uri(String.format("/api/bot/game/stream/%s", id)).exchange().subscribe(
+                    clientResponse -> {
+                        clientResponse
+                                .bodyToFlux(String.class).doOnComplete(() -> {
+                            finished = true;
+                            handler.onFinish(this);
+                        })
+                                .subscribe(s -> {
+                                    if (!s.isEmpty())
+                                        evaluateGameEvent(new JSONObject(s));
+                                });
+                    }
+            );
+        }else{
+            eventCatcher = null;
+            client = null;
+        }
 
-        eventCatcher = client.method(HttpMethod.GET).uri(String.format("/api/bot/game/stream/%s", id)).exchange().subscribe(
-                clientResponse -> {
-                    clientResponse
-                            .bodyToFlux(String.class).doOnComplete(() -> {
-                        finished = true;
-                        handler.onFinish(this);
-                    })
-                            .subscribe(s -> {
-                                if (!s.isEmpty())
-                                    evaluateGameEvent(new JSONObject(s));
-                            });
-                }
-        );
 
     }
 

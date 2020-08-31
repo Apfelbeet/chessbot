@@ -38,11 +38,6 @@ public class GameState {
     private Side winner;
 
     /**
-     * Stores all legalMoves.
-     */
-    private MoveList legalMoves;
-
-    /**
      * @param gameFull "gameFull"-type response.
      */
     GameState(JSONObject gameFull) {
@@ -66,7 +61,7 @@ public class GameState {
                 MoveList moveList = new MoveList();
                 moveList.loadFromText(state.getString("moves"));
                 board.loadFromFen(moveList.getFen());
-            }else {
+            } else {
                 //If there is no "moves"-object or it is an empty string, the board will be reset.
                 board = new Board();
             }
@@ -114,17 +109,15 @@ public class GameState {
      *
      * @return All possible/legal moves
      */
-    public MoveList getLegalMoves(){
-        if (legalMoves == null) {
-            try {
-                return legalMoves = MoveGenerator.generateLegalMoves(board);
-            } catch (MoveGeneratorException e) {
-                e.printStackTrace();
-                return null;
-            }
-        } else {
-            return legalMoves;
+    public MoveList getLegalMoves() {
+
+        try {
+            return MoveGenerator.generateLegalMoves(board);
+        } catch (MoveGeneratorException e) {
+            e.printStackTrace();
+            return null;
         }
+
     }
 
     public static class Player {
@@ -133,11 +126,11 @@ public class GameState {
 
 
         public Player(JSONObject player) {
-            if(player.has("id"))
+            if (player.has("id"))
                 id = player.getString("id");
             else
                 id = "ai";
-            if(player.has("name"))
+            if (player.has("name"))
                 name = player.getString("name");
             else
                 name = "stockfish";
