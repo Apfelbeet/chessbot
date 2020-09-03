@@ -28,7 +28,7 @@ public class LocalChessGame extends LiChessGame {
     private void nextTurn() {
         if(isFinished()) {
             getHandler().onFinish(this);
-        }else {
+        } else {
             getHandler().onTurn(this);
         }
 
@@ -42,6 +42,7 @@ public class LocalChessGame extends LiChessGame {
     @Override
     public void move(String move) {
         getState().getBoard().doMove(new Move(move, getSide()));
+        System.out.println("\n" + getState().getBoard().toString() + "\n");
         nextTurn();
     }
 
