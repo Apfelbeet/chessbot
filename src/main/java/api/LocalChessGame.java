@@ -16,15 +16,22 @@ public class LocalChessGame extends LiChessGame {
         JSONObject body = new JSONObject().put("white", p1).put("black", p2);
         state = new GameState(body);
 
-        Thread gameloop = new Thread(() -> {
+        /*Thread gameloop = new Thread(() -> {
             while (!isFinished()) {
-                getHandler().onTurn(this);
-                System.out.println(getState().getBoard().getFen());
-                System.out.println(getState().getBoard().toString());
             }
-            getHandler().onFinish(this);
         });
-        gameloop.start();
+        gameloop.start();*/
+
+        nextTurn();
+    }
+
+    private void nextTurn() {
+        if(isFinished()) {
+            getHandler().onFinish(this);
+        }else {
+            getHandler().onTurn(this);
+        }
+
     }
 
     @Override
@@ -35,6 +42,7 @@ public class LocalChessGame extends LiChessGame {
     @Override
     public void move(String move) {
         getState().getBoard().doMove(new Move(move, getSide()));
+        nextTurn();
     }
 
     @Override
