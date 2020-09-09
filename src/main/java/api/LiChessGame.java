@@ -133,7 +133,7 @@ public class LiChessGame {
                 .body(BodyInserters
                         .fromFormData("room", room) //"player" "spectator"
                         .with("text", message)
-                ).exchange().subscribe();
+                ).exchange().retry().subscribe();
     }
 
     /**
@@ -142,7 +142,7 @@ public class LiChessGame {
      * @param move in UCI format e.g. a2a4
      */
     public void move(String move) {
-        client.post().uri(String.format("/api/bot/game/%s/move/%s", id, move)).exchange().subscribe();
+        client.post().uri(String.format("/api/bot/game/%s/move/%s", id, move)).exchange().retry().subscribe();
     }
 
     /*public void draw(boolean draw) {
